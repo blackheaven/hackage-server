@@ -2,6 +2,9 @@ module Distribution.Server.Framework.AuthCrypt (
    PasswdPlain(..),
    PasswdHash(..),
    newPasswdHash,
+   newPasswdHashArgon2id,
+   PasswordCheckResult (..),
+   checkAndUpgradePasswd,
    checkBasicAuthInfo,
    BasicAuthInfo(..),
    checkDigestAuthInfo,
@@ -15,6 +18,9 @@ import Distribution.Server.Users.Types (UserName(..))
 
 import qualified Data.ByteString.Lazy.Char8 as BS.Lazy -- Only used for ASCII data
 import Data.List (intercalate)
+import Data.Password.Argon2
+    ( PasswordCheck(..), mkPassword, hashPassword, checkPassword )
+import qualified Data.Text as T
 
 -- Hashed passwords are stored in the format:
 --
@@ -28,6 +34,33 @@ import Data.List (intercalate)
 newPasswdHash :: RealmName -> UserName -> PasswdPlain -> PasswdHash
 newPasswdHash (RealmName realmName) (UserName userName) (PasswdPlain passwd) =
     DigestPasswdHash $ md5HexDigest [userName, realmName, passwd]
+
+newPasswdHashArgon2id :: PasswdPlain -> IO PasswdHash
+newPasswdHashArgon2id (PasswdPlain pwd) = do
+    let password = mkPassword (T.pack pwd)
+    Argon2idPasswdHash <$> hashPassword password
+
+data PasswordCheckResult
+  = PasswordMismatch
+  | PasswordMatchOk
+  | PasswordMatchUpgrade !PasswdHash
+  deriving (Eq, Show)
+
+checkAndUpgradePasswd
+  :: RealmName -> UserName -> PasswdPlain -> PasswdHash
+  -> IO PasswordCheckResult
+checkAndUpgradePasswd _realm _user plain (Argon2idPasswdHash stored) = do
+    let PasswdPlain pwd = plain
+        password = mkPassword (T.pack pwd)
+    pure $ case checkPassword password stored of
+      PasswordCheckSuccess -> PasswordMatchOk
+      PasswordCheckFail    -> PasswordMismatch
+checkAndUpgradePasswd realm user plain legacy@(LegacyPasswdHash _) =
+    if checkBasicAuthInfo legacy (BasicAuthInfo realm user plain)
+      then do
+        newHash <- newPasswdHashArgon2id plain
+        pure (PasswordMatchUpgrade newHash)
+      else pure PasswordMismatch
 
 ------------------
 -- HTTP Basic auth
