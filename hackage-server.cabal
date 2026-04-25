@@ -728,6 +728,21 @@ test-suite HashTests
     , tasty       ^>= 1.5
     , tasty-hunit ^>= 0.10
 
+test-suite PasswordTests
+  import:         test-defaults
+
+  type:           exitcode-stdio-1.0
+  main-is:        PasswordTestMain.hs
+
+  build-depends:
+    -- version constraints inherited from hackage-server
+    , cereal
+    , password
+    , safecopy
+      -- component-specific dependencies
+    , tasty       ^>= 1.5
+    , tasty-hunit ^>= 0.10
+
 test-suite DocTests
   import:         test-defaults
 
