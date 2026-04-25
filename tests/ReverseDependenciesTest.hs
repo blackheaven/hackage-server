@@ -466,7 +466,7 @@ getNotificationEmailsTests =
     ((userWatcher, userActor, userSubject), allUsers) =
       (`State.runState` Users.emptyUsers) $ do
         let addUser name = State.StateT $ \users0 ->
-              case Users.addUserEnabled (UserName name) (UserAuth $ PasswdHash "") users0 of
+              case Users.addUserEnabled (UserName name) (UserAuth $ DigestPasswdHash "") users0 of
                 Right (users1, uid) -> pure (uid, users1)
                 Left _ -> error $ "Got duplicate username: " <> name
         (,,)

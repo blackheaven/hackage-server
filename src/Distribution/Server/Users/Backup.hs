@@ -53,13 +53,13 @@ importAuth = concatM . map fromRecord . drop 2
     fromRecord [idStr, nameStr, "enabled", auth] users = do
         uid   <- parseText "user id"   idStr
         uname <- parseText "user name" nameStr
-        let uauth = UserAuth (PasswdHash auth)
+        let uauth = UserAuth (mkPasswdHash auth)
         insertUser users uid $ UserInfo uname (AccountEnabled uauth) M.empty
     fromRecord [idStr, nameStr, "disabled", auth] users = do
         uid   <- parseText "user id"   idStr
         uname <- parseText "user name" nameStr
         let uauth | null auth = Nothing
-                  | otherwise = Just (UserAuth (PasswdHash auth))
+                  | otherwise = Just (UserAuth (mkPasswdHash auth))
         insertUser users uid $ UserInfo uname (AccountDisabled uauth) M.empty
     fromRecord [idStr, nameStr, "deleted", ""] users = do
         uid   <- parseText "user id"   idStr
@@ -163,14 +163,15 @@ usersToCSV backuptype users
 
     scrubbedAuth :: UserInfo -> String
     scrubbedAuth userInfo = case userStatus userInfo of
-      AccountEnabled        (UserAuth (PasswdHash _))  -> testHash userInfo
-      AccountDisabled (Just (UserAuth (PasswdHash _))) -> testHash userInfo
+      AccountEnabled        (UserAuth _)  -> testHash userInfo
+      AccountDisabled (Just (UserAuth _)) -> testHash userInfo
       _                                                -> ""
 
     testHash :: UserInfo -> String
     testHash userInfo = case Auth.newPasswdHash Auth.hackageRealm
                              (userName userInfo) (PasswdPlain "test") of
-                          PasswdHash pwd -> pwd
+                          DigestPasswdHash pwd -> pwd
+                          Argon2idPasswdHash {} -> error "newPasswdHash returned Argon2id"
 
     -- one of "enabled" "disabled" or "deleted"
     infoToStatus :: UserInfo -> String
@@ -182,9 +183,9 @@ usersToCSV backuptype users
     -- may be null
     infoToAuth :: UserInfo -> String
     infoToAuth userInfo = case userStatus userInfo of
-        AccountEnabled        (UserAuth (PasswdHash hash))  -> hash
-        AccountDisabled (Just (UserAuth (PasswdHash hash))) -> hash
-        _                                                   -> ""
+        AccountEnabled        (UserAuth hash)  -> passwdHashToString hash
+        AccountDisabled (Just (UserAuth hash)) -> passwdHashToString hash
+        _                                      -> ""
 
 -- authtokens.csv
 {- | Produces a CSV file for the users auth tokens.

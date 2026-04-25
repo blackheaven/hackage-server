@@ -27,7 +27,7 @@ import Data.List (intercalate)
 --
 newPasswdHash :: RealmName -> UserName -> PasswdPlain -> PasswdHash
 newPasswdHash (RealmName realmName) (UserName userName) (PasswdPlain passwd) =
-    PasswdHash $ md5HexDigest [userName, realmName, passwd]
+    DigestPasswdHash $ md5HexDigest [userName, realmName, passwd]
 
 ------------------
 -- HTTP Basic auth
@@ -67,7 +67,7 @@ data QopInfo = QopNone
 -- See RFC 2617 http://www.ietf.org/rfc/rfc2617
 --
 checkDigestAuthInfo :: PasswdHash -> DigestAuthInfo -> Bool
-checkDigestAuthInfo (PasswdHash passwdHash)
+checkDigestAuthInfo (DigestPasswdHash passwdHash)
                 (DigestAuthInfo _username nonce response uri method qopinfo) =
     hash3 == response
   where
@@ -76,6 +76,7 @@ checkDigestAuthInfo (PasswdHash passwdHash)
     hash3  = case qopinfo of
                QopNone           -> md5HexDigest [hash1, nonce, hash2]
                QopAuth nc cnonce -> md5HexDigest [hash1, nonce, nc, cnonce, "auth", hash2]
+checkDigestAuthInfo Argon2idPasswdHash {} _ = False
 
 ------------------
 -- Utils
