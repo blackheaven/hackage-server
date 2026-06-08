@@ -74,6 +74,7 @@ adminLogFeature UserFeature{..} adminLogState
     queryGetAdminLog = queryState adminLogState Acid.GetAdminLog
 
     serveAdminLogGet _ = do
+      guardAuthorised_ [InGroup adminGroup]
       aLog  <- queryState adminLogState Acid.GetAdminLog
       users <- queryGetUserDb
       return . toResponse . adminLogPage users . map mkRow . Acid.adminLog $ aLog
