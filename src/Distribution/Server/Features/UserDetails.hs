@@ -195,6 +195,7 @@ userDetailsFeature templates userDetailsState UserFeature{..} CoreFeature{..} Up
     handlerDeleteUserNameContact dpath = do
         uid <- lookupUserName =<< userNameInPath dpath
         guardAuthorised_ [IsUserId uid, InGroup adminGroup]
+        void $ guardAuthorisedWhenInAnyGroup [uploadersGroup, adminGroup]
         updateState userDetailsState (Acid.SetUserNameContact uid T.empty T.empty)
         noContent $ toResponse ()
 
