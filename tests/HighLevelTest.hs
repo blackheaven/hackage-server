@@ -225,6 +225,8 @@ runPackageUploadTests = do
 
 runRevisionTests :: IO ()
 runRevisionTests = do
+    do info "Checking cabal edit form requires auth"
+       checkIsUnauthorized NoAuth "/package/testpackage-1.0.0.0/testpackage.cabal/edit"
     do info "Revising testpackage"
        post (Auth "HackageTestUser1" "testpass1") "/package/testpackage-1.0.0.0/testpackage.cabal/edit"
          [ ("cabalfile", revisedCabalFileContent)

@@ -53,7 +53,7 @@ editCabalFilesFeature :: ServerEnv -> Templates
                       -> UserFeature -> CoreFeature -> UploadFeature
                       -> HackageFeature
 editCabalFilesFeature _env templates
-                      UserFeature{guardAuthorised}
+                      UserFeature{guardAuthorised, guardAuthorised_}
                       CoreFeature{..}
                       UploadFeature{maintainersGroup, trusteesGroup} =
   (emptyHackageFeature "edit-cabal-files") {
@@ -82,6 +82,8 @@ editCabalFilesFeature _env templates
             pkgid   = packageId pkg
         -- check that the cabal name matches the package
         guard (lookup "cabal" dpath == Just (display pkgname))
+        guardAuthorised_ [ InGroup (maintainersGroup pkgname)
+                         , InGroup trusteesGroup ]
         ok $ toResponse $ template
           [ "pkgid"     $= pkgid
           , "cabalfile" $= insertRevisionField (pkgNumRevisions pkg)
