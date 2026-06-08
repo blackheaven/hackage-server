@@ -421,7 +421,7 @@ initHackageFeatures env@ServerEnv{serverVerbosity = verbosity} = do
          , staticFilesFeature
          , serverIntrospectFeature allFeatures
 #ifdef DEBUG
-         , serverCrashFeature
+         , serverCrashFeature usersFeature
 #endif
          , browseFeature
          ]
