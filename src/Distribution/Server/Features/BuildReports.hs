@@ -385,9 +385,9 @@ buildReportsFeature name
     postReportsTestsEnabled :: DynamicPath -> ServerPartE Response
     postReportsTestsEnabled dpath = do
       pkgid <- packageInPath dpath
-      runTests <- body $ looks "runTests"
       guardValidPackageId pkgid
       guardAuthorisedAsMaintainerOrTrustee (packageName pkgid)
+      runTests <- body $ looks "runTests"
       success <- updateState reportsState $ Acid.SetRunTests pkgid ("on" `elem` runTests)
       if success
           then seeOther (reportsListUri reportsResource "" pkgid) $ toResponse ()
