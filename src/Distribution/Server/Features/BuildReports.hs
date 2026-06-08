@@ -320,8 +320,7 @@ buildReportsFeature name
       pkgid <- packageInPath dpath
       guardValidPackageId pkgid
       reportId <- reportIdInPath dpath
-      -- logged in users
-      guardAuthorised_ [AnyKnownUser]
+      guardAuthorisedAsMaintainerOrTrustee (packageName pkgid)
       blogbody <- expectTextPlain
       buildLog <- liftIO $ BlobStorage.add store blogbody
       void $ updateState reportsState $ Acid.SetBuildLog pkgid reportId (Just $ BuildLog buildLog)
@@ -332,8 +331,7 @@ buildReportsFeature name
       pkgid <- packageInPath dpath
       guardValidPackageId pkgid
       reportId <- reportIdInPath dpath
-      -- logged in users
-      guardAuthorised_ [AnyKnownUser]
+      guardAuthorisedAsMaintainerOrTrustee (packageName pkgid)
       blogbody <- expectTextPlain
       testLog <- liftIO $ BlobStorage.add store blogbody
       void $ updateState reportsState $ Acid.SetTestLog pkgid reportId (Just $ TestLog testLog)
