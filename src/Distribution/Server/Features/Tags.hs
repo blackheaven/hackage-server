@@ -156,7 +156,7 @@ tagsFeature :: CoreFeature
 
 tagsFeature CoreFeature{ queryGetPackageIndex }
             UploadFeature{ maintainersGroup, trusteesGroup }
-            UserFeature{ guardAuthorised' }
+            UserFeature{ guardAuthorised', guardAuthorised_ }
             tagsState
             tagsAlias
             calculatedTags
@@ -237,7 +237,8 @@ tagsFeature CoreFeature{ queryGetPackageIndex }
         return $ Map.fromDistinctAscList . map (\pkg -> (pkg, Map.findWithDefault Set.empty pkg pkgMap)) $ Set.toList pkgs
 
     mergeTags :: Maybe String -> Tag -> ServerPartE ()
-    mergeTags targetTag deprTag =
+    mergeTags targetTag deprTag = do
+        guardAuthorised_ [InGroup trusteesGroup]
         case simpleParse =<< targetTag of
             Just (Tag orig) -> do
                 index <- queryGetPackageIndex

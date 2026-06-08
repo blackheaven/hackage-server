@@ -1802,6 +1802,7 @@ mkHtmlTags HtmlUtilities{..}
 
     putAliasEdit :: DynamicPath -> ServerPartE Response
     putAliasEdit dpath = do
+        guardAuthorised_ [InGroup trusteesGroup]
         tagname <- tagInPath dpath
         targetTag <- optional $ look "tags"
         mergeTags targetTag (Tag tagname)
