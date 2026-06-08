@@ -1980,6 +1980,8 @@ mkHtmlAnalyticsPixels HtmlUtilities{..} CoreFeature{..} UserFeature{..} UploadFe
     servePackageAnalyticsPixels :: DynamicPath -> ServerPartE Response
     servePackageAnalyticsPixels dpath = do
         pkgname <- packageInPath dpath
+        guardValidPackageName pkgname
+        guardAuthorisedAsMaintainerOrTrustee pkgname
         packageAnalyticsPixelsHtml pkgname
 
     serveAddPackageAnalyticsPixel :: DynamicPath -> ServerPartE Response
