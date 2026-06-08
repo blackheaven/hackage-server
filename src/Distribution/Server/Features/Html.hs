@@ -1944,6 +1944,8 @@ mkHtmlAnalyticsPixels HtmlUtilities{..} CoreFeature{..} UserFeature{..} UploadFe
     serveUserPackageAnalyticsPixels :: DynamicPath -> ServerPartE Response
     serveUserPackageAnalyticsPixels dpath = do
         uname <- userNameInPath dpath
+        uid   <- lookupUserName uname
+        guardAuthorised_ [IsUserId uid, InGroup adminGroup]
         userPackagesAnalyticsPixelsHtml uname
 
     serveAddUserPackageAnalyticsPixel :: DynamicPath -> ServerPartE Response
