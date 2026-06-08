@@ -5,7 +5,7 @@ module Distribution.Server.Features.Vouch (VouchFeature(..), initVouchFeature, j
 
 import qualified Distribution.Server.Features.Vouch.State as Acid
 import Distribution.Server.Features.Vouch.Types
-import Control.Monad (when, join)
+import Control.Monad (void, when, join)
 import Control.Monad.Except (runExceptT, throwError)
 import Control.Monad.IO.Class (MonadIO)
 import qualified Data.ByteString.Lazy.Char8 as LBS
@@ -121,6 +121,7 @@ initVouchFeature ServerEnv{serverStateDir, serverTemplatesDir, serverTemplatesMo
     let
       handleGetVouches :: DynamicPath -> ServerPartE Response
       handleGetVouches dpath = do
+        void guardAuthenticated
         uid <- lookupUserName =<< userNameInPath dpath
         vouches <- queryState vouchState $ Acid.GetVouchesFor uid
         param <- renderToLBS lookupUserInfo vouches
