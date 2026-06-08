@@ -1,8 +1,7 @@
 module Distribution.Server.Features.Vouch.Types where
 
 data VouchError
-  = NotAnUploader
-  | You'reTooNew
+  = You'reTooNew
   | VoucheeAlreadyUploader
   | AlreadySufficientlyVouched
   | YouAlreadyVouched

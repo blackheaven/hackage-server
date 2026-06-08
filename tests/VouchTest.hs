@@ -37,18 +37,6 @@ allTests = testGroup "VouchTest"
           []
           [(otherVoucherForVouchee, UTCTime (fromGregorian 2020 1 1) 0)]
           voucher
-  , testCase "non-uploader tried to vouch" $ do
-      let ref = Left NotAnUploader
-          voucher = UserId 1
-          vouchee = UserId 2
-      assertEqual "must match" ref $
-        judgeVouch
-          (fromList []) -- empty. Should contain voucher for operation to proceed.
-          (UTCTime (fromGregorian 2020 1 1) 0)
-          vouchee
-          []
-          []
-          voucher
   , testCase "voucher too new" $ do
       let ref = Left You'reTooNew
           voucher = UserId 1

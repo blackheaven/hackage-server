@@ -72,10 +72,6 @@ judgeVouch
   -> UserId
   -> Either VouchError VouchSuccess
 judgeVouch ugroup now vouchee vouchersForVoucher existingVouchers voucher = join . runExceptT $ do
-  when (not (voucher `Group.member` ugroup)) $
-    throwError NotAnUploader
-  -- You can only vouch for non-uploaders, so if this list has items, the user is uploader because of these vouches.
-  -- Make sure none of them are too recent.
   when (length vouchersForVoucher >= requiredCountOfVouches && any (isWithinLastMonth now) vouchersForVoucher) $
     throwError You'reTooNew
   when (vouchee `Group.member` ugroup) $
@@ -116,7 +112,7 @@ initVouchFeature ServerEnv{serverStateDir, serverTemplatesDir, serverTemplatesMo
   templates <- loadTemplates serverTemplatesMode [ serverTemplatesDir, serverTemplatesDir </> "Html"]
                                                  ["vouch.html"]
   vouchTemplate <- getTemplate templates "vouch.html"
-  return $ \UserFeature{userNameInPath, lookupUserName, lookupUserInfo, guardAuthenticated}
+  return $ \UserFeature{userNameInPath, lookupUserName, lookupUserInfo, guardAuthenticated, guardAuthorisedWhenInAnyGroup}
             UploadFeature{uploadersGroup} -> do
     let
       handleGetVouches :: DynamicPath -> ServerPartE Response
@@ -132,15 +128,13 @@ initVouchFeature ServerEnv{serverStateDir, serverTemplatesDir, serverTemplatesMo
           ]
       handlePostVouch :: DynamicPath -> ServerPartE Response
       handlePostVouch dpath = do
-        voucher <- guardAuthenticated
-        ugroup <- liftIO $ Group.queryUserGroup uploadersGroup
+        voucher <- guardAuthorisedWhenInAnyGroup [uploadersGroup]
         now <- liftIO getCurrentTime
         vouchee <- lookupUserName =<< userNameInPath dpath
+        ugroup <- liftIO $ Group.queryUserGroup uploadersGroup
         vouchersForVoucher <- queryState vouchState $ Acid.GetVouchesFor voucher
         existingVouchers <- queryState vouchState $ Acid.GetVouchesFor vouchee
         case judgeVouch ugroup now vouchee vouchersForVoucher existingVouchers voucher of
-          Left NotAnUploader ->
-            errBadRequest "Not an uploader" [MText "You must be an uploader yourself to endorse other users."]
           Left You'reTooNew ->
             errBadRequest "You're too new" [MText "The latest of the endorsements for your user must be at least 30 days old."]
           Left VoucheeAlreadyUploader ->
