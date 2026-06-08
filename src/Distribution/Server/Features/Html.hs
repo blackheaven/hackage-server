@@ -914,7 +914,8 @@ mkHtmlUsers UserFeature{..} UserDetailsFeature{..} = HtmlUsers{..}
       uid      <- lookupUserName uname
       udetails <- queryUserDetails uid
       let realname = maybe (display uname) (T.unpack . accountName) udetails
-      uris     <- getGroupIndex uid
+      canSee   <- canSeeUserGroups uid
+      uris     <- if canSee then getGroupIndex uid else return []
       uriPairs <- forM uris $ \uri -> do
           desc <- getIndexDesc uri
           return $ Pages.renderGroupName desc (Just uri)

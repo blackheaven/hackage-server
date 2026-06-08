@@ -69,6 +69,9 @@ data UserFeature = UserFeature {
     guardAuthenticated :: ServerPartE UserId,
     -- Gets the authentication if it exists.
     checkAuthenticated :: ServerPartE (Maybe UserId),
+    -- | Check whether the current user is allowed to view group membership
+    -- for the given target user. Self and admins can see groups.
+    canSeeUserGroups   :: UserId -> ServerPartE Bool,
     -- | A hook to override the default authentication error in particular
     -- circumstances.
     authFailHook       :: Hook Auth.AuthError (Maybe ErrorResponse),
@@ -543,13 +546,25 @@ userFeature templates usersState adminsState
     serveUserGet :: DynamicPath -> ServerPartE Response
     serveUserGet dpath = do
       (uid, uinfo)  <- lookupUserNameFull =<< userNameInPath dpath
-      groups        <- getGroupIndex uid
+      canSeeGroups  <- canSeeUserGroups uid
+      groups        <- if canSeeGroups
+                         then getGroupIndex uid
+                         else return []
       return . toResponse $
         toJSON UserInfoResource {
                  ui1_username = userName uinfo,
                  ui1_userid   = uid,
                  ui1_groups   = map T.pack groups
                }
+
+    canSeeUserGroups :: UserId -> ServerPartE Bool
+    canSeeUserGroups targetUid = do
+      mAuthUid <- checkAuthenticated
+      case mAuthUid of
+        Nothing    -> pure False
+        Just authId
+          | authId == targetUid -> pure True
+          | otherwise           -> guardAuthorised' [InGroup adminGroup]
 
     serveUserPut :: DynamicPath -> ServerPartE Response
     serveUserPut dpath = do
