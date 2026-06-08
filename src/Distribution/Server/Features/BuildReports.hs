@@ -143,9 +143,9 @@ buildReportsFeature name
               }
 
           , reportsReset = (extendResourcePath "/reports/reset/" corePackagePage) {
-                resourceDesc  = [ (GET, "Reset fail count and trigger rebuild")
+                resourceDesc  = [ (POST, "Reset fail count and trigger rebuild")
                                  ]
-              , resourceGet   = [ ("", resetBuildFails) ]
+              , resourcePost  = [ ("", resetBuildFails) ]
               }
           , reportsTestsEnabled = (extendResourcePath "/reports/testsEnabled/" corePackagePage) {
                 resourceDesc  = [ (GET, "Get reports test settings")
