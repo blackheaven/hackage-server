@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE NamedFieldPuns, PatternGuards #-}
 module Distribution.Server.Features.ServerIntrospect (
     serverIntrospectFeature
   ) where
@@ -6,6 +6,7 @@ module Distribution.Server.Features.ServerIntrospect (
 import Distribution.Server.Framework
 import qualified Distribution.Server.Framework.ResponseContentTypes as Resource
 import Distribution.Server.Pages.Template (hackagePage)
+import Distribution.Server.Features.Users (UserFeature(..))
 
 import Text.XHtml.Strict
          ( Html, URL, (+++), concatHtml, noHtml, toHtml, (<<)
@@ -35,8 +36,8 @@ import Control.Arrow (first)
 --
 -- * Memory consumption by each of the features
 --
-serverIntrospectFeature :: [HackageFeature] -> HackageFeature
-serverIntrospectFeature serverFeatures = (emptyHackageFeature "serverapi") {
+serverIntrospectFeature :: UserFeature -> [HackageFeature] -> HackageFeature
+serverIntrospectFeature usersFeature serverFeatures = (emptyHackageFeature "serverapi") {
     featureDesc = "Lists the resources available on this server."
   , featureResources =
       [ (resourceAt "/api.:format") {
@@ -47,7 +48,7 @@ serverIntrospectFeature serverFeatures = (emptyHackageFeature "serverapi") {
           }
       , (resourceAt "/server-status/memory.:format") {
             resourceDesc = [ (GET, "Server memory usage") ]
-          , resourceGet  = [ ("html", \_ -> serveMemSizeHtml serverFeatures)
+          , resourceGet  = [ ("html", \_ -> serveMemSizeHtml usersFeature serverFeatures)
                            ]
           }
       ]
@@ -244,12 +245,11 @@ apiDocJSON serverFeatures = featureList
 -- Memory consumption
 --
 
-serveMemSizeHtml :: [HackageFeature] -> ServerPartE Response
-serveMemSizeHtml serverFeatures =
-      toResponse
-    . Resource.XHtml
-    . memSizePageHtml
-  <$> liftIO (mapM getFeatureSizes serverFeatures)
+serveMemSizeHtml :: UserFeature -> [HackageFeature] -> ServerPartE Response
+serveMemSizeHtml UserFeature{guardAuthorised_, adminGroup} serverFeatures = do
+    guardAuthorised_ [InGroup adminGroup]
+    (toResponse . Resource.XHtml . memSizePageHtml)
+      <$> liftIO (mapM getFeatureSizes serverFeatures)
   where
     getFeatureSizes feature =
       (,,,) <$> pure (featureName feature)

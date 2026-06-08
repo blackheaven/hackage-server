@@ -419,7 +419,7 @@ initHackageFeatures env@ServerEnv{serverVerbosity = verbosity} = do
          , getFeatureInterface vouchFeature
 #endif
          , staticFilesFeature
-         , serverIntrospectFeature allFeatures
+         , serverIntrospectFeature usersFeature allFeatures
 #ifdef DEBUG
          , serverCrashFeature usersFeature
 #endif
