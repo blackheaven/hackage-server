@@ -37,7 +37,6 @@ import Data.Aeson (toJSON)
 
 -- TODO:
 -- 1. Put the HTML view for this module in the HTML feature; get rid of the text view
--- 2. Decide build report upload policy (anonymous and authenticated)
 data ReportsFeature = ReportsFeature {
     reportsFeatureInterface :: HackageFeature,
 
@@ -280,14 +279,11 @@ buildReportsFeature name
     submitBuildReport dpath = do
       pkgid <- packageInPath dpath
       guardValidPackageId pkgid
-      guardAuthorised_ [AnyKnownUser] -- allow any logged-in user
+      guardAuthorisedAsMaintainerOrTrustee (packageName pkgid)
       reportbody <- expectTextPlain
       case BuildReport.parse $ toStrict reportbody of
           Left err -> errBadRequest "Error submitting report" [MText err]
           Right report -> do
-              when (BuildReport.docBuilder report) $
-                  -- Check that the submitter can actually upload docs
-                  guardAuthorisedAsMaintainerOrTrustee (packageName pkgid)
               report' <- liftIO $ BuildReport.affixTimestamp report
               reportId <- updateState reportsState $ Acid.AddReport pkgid (report', Nothing)
               -- redirect to new reports page
@@ -402,7 +398,7 @@ buildReportsFeature name
     putAllReports dpath = do
       pkgid <- packageInPath dpath
       guardValidPackageId pkgid
-      guardAuthorised_ [AnyKnownUser] -- allow any logged-in user
+      guardAuthorisedAsMaintainerOrTrustee (packageName pkgid)
       buildFiles <- expectAesonContent::ServerPartE BuildReport.BuildFiles
       let reportBody  = BuildReport.reportContent buildFiles
           logBody     = BuildReport.logContent buildFiles
@@ -416,9 +412,6 @@ buildReportsFeature name
       case BuildReport.parse $ toStrict $ fromString $ fromMaybe "" reportBody of
           Left err -> errBadRequest "Error submitting report" [MText err]
           Right report -> do
-              when (BuildReport.docBuilder report) $
-                  -- Check that the submitter can actually upload docs
-                  guardAuthorisedAsMaintainerOrTrustee (packageName pkgid)
               report'   <- liftIO $ BuildReport.affixTimestamp report
               logBlob   <- liftIO $ traverse (\x -> BlobStorage.add store $ fromString x) logBody
               testBlob  <- liftIO $ traverse (\x -> BlobStorage.add store $ fromString x) testBody
