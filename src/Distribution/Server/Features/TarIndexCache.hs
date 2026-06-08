@@ -120,6 +120,7 @@ tarIndexCacheFeature ServerEnv{serverBlobStore = store}
 
     serveTarIndicesStatus :: ServerPartE Response
     serveTarIndicesStatus = do
+      guardAuthorised_ [InGroup adminGroup]
       Acid.TarIndexCache state <- liftIO $ getState tarIndexCache
       return . toResponse . toJSON . Map.toList $ state
 
